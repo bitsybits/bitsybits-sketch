@@ -7,7 +7,7 @@ ConsoleView mConsoleView(&mDisplay);
 ConsoleController mConsole(&mConsoleView);
 DPad mDPad (DPAD_UP, DPAD_CENTER, DPAD_DOWN, LOW);
 bt::SchedulerTask task([] { mConsole.print("|o_O|"); });
-bt::SchedulerTask taskConsole([] {  mConsole.execute(); });
+bt::SchedulerTask taskConsole(&mConsole);
 bt::SchedulerTask taskAddDot(taskAddDotCallback);
 bt::TaskScheduler mScheduler;
 
