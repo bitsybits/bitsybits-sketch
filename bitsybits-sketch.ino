@@ -1,20 +1,31 @@
 #include <Wire.h>
 #include <Arduino.h>
 #include <BitsyBits.h>
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h> 
+#include <ESP8266WebServer.h>
 
+ESP8266WebServer mServer(80);
 SSD1306 mDisplay(&Wire);
 ConsoleView mConsoleView(&mDisplay);
 ConsoleController mConsole(&mConsoleView);
 DPad mDPad (DPAD_UP, DPAD_CENTER, DPAD_DOWN, LOW);
-bt::SchedulerTask task([] { mConsole.print("|o_O|"); });
+
 bt::SchedulerTask taskConsole(&mConsole);
 bt::SchedulerTask taskAddDot(taskAddDotCallback);
+bt::SchedulerTask taskWifi([]{mServer.handleClient();});
+bt::SchedulerTask taskBattery(taskBatteryCallback);
 bt::TaskScheduler mScheduler;
 
 void setup() {
   Serial.begin(9600);
   Wire.begin(SDA, SCL);
   Wire.setClock(400000);
+
+  WiFi.softAP("BitsyBits", "password");
+  IPAddress myIP = WiFi.softAPIP();
+  mServer.onNotFound(handleRoot);
+  mServer.begin();
 
   pinMode(VIBRO, OUTPUT);
 
@@ -31,31 +42,38 @@ void setup() {
   mConsole.print(KEY_FOLLOW);
   mConsole.print(KEY_WHITE_RABBIT);
 
-  mConsole.print(KEY_WAKE_UP);
-  mConsole.print(KEY_MATRIX_HAS);
-  mConsole.print(KEY_FOLLOW);
-  mConsole.print(KEY_WHITE_RABBIT);
+  mConsole.print(" ");
+  mConsole.print("AP: BitsyBits");
+  mConsole.print("IP: " + myIP.toString());
 
-  mConsole.print(KEY_WAKE_UP);
-  mConsole.print(KEY_MATRIX_HAS);
-  mConsole.print(KEY_FOLLOW);
-  mConsole.print(KEY_WHITE_RABBIT);
+  mScheduler.push(&taskConsole)
+  ->push(&taskAddDot)
+  ->push(&taskWifi)
+  ->push(&taskBattery)
+  ;
 
-  mConsole.print(KEY_WAKE_UP);
-  mConsole.print(KEY_MATRIX_HAS);
-  mConsole.print(KEY_FOLLOW);
-  mConsole.print(KEY_WHITE_RABBIT);
-  mScheduler.push(&task)
-  ->push(&taskConsole)
-  ->push(&taskAddDot);
-
-  task.attach(1000, true);
   taskConsole.attach(100, true);
   taskAddDot.attach(100, true);
+  taskWifi.attach(100, true);
+  taskBattery.attach(3000, true);
 }
 
 void loop() {
   mScheduler.execute();
+}
+
+void handleRoot() {
+  mServer.send(200, "text/html", mServer.uri());
+  mConsole.print(mServer.uri());
+}
+
+void taskBatteryCallback() {
+  int battery = 0;
+  for(char i = 0; i < 10; ++i) {
+    battery += analogRead(BATT);
+    yield();
+  }
+  mConsole.print("BATT: " + String(battery / 10));
 }
 
 void taskAddDotCallback() {
