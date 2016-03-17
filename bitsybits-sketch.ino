@@ -55,7 +55,8 @@ void setup() {
   taskConsole.attach(100, true);
   taskAddDot.attach(100, true);
   taskWifi.attach(100, true);
-  taskBattery.attach(3000, true);
+  taskBattery.attach(1000, true);
+  Hx711(D0, D1);
 }
 
 void loop() {
@@ -67,6 +68,42 @@ void handleRoot() {
   mConsole.print(mServer.uri());
 }
 
+uint8_t mDt;
+uint8_t mSck;
+void Hx711(uint8_t dt, uint8_t sck) 
+{
+  mDt = dt;
+  mSck = sck;
+  pinMode(mSck, OUTPUT);
+  pinMode(mDt, INPUT);
+
+  digitalWrite(mSck, HIGH);
+  digitalWrite(mSck, LOW);
+}
+
+uint32_t shiftInMsb(uint8_t dataPin, uint8_t clockPin, uint8_t count){
+  uint32_t value = 0;
+  for(uint8_t i = _min(count, 32); i--;) {
+    digitalWrite(clockPin, HIGH);
+    value |= digitalRead(dataPin) << i;
+    digitalWrite(clockPin, LOW);
+  }
+  return value;
+}
+
+uint32_t getValue()
+{
+  for (uint8_t i = 100; i--;) {
+    if(!digitalRead(mDt)){
+      uint32_t data = shiftInMsb(mDt, mSck, 24);
+      digitalWrite(mSck, HIGH);
+      digitalWrite(mSck, LOW);
+      return data ^ 0x800000;
+    }
+  }
+  return 0;
+}
+
 void taskBatteryCallback() {
   int battery = 0;
   for(char i = 0; i < 10; ++i) {
@@ -74,6 +111,7 @@ void taskBatteryCallback() {
     yield();
   }
   mConsole.print("BATT: " + String(battery / 10));
+  mConsole.print("Hx711: " + String(getValue()));
 }
 
 void taskAddDotCallback() {
