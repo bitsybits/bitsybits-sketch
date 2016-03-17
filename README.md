@@ -16,3 +16,6 @@ The “Bitsy Bits” is an IoT composite project. This means it has all parts to
 -	Sleep mode available
 -	Navigation switch, 3 way, SMD
 -	Shaftless vibration motor
+
+<img src="https://rawgit.com/bitsybits/bitsybits-sketch/master/doc/images/bottom.png" width="49%"> 
+<img src="https://rawgit.com/bitsybits/bitsybits-sketch/master/doc/images/top.png" width="49%">
